@@ -1,0 +1,1144 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Tourist Dashboard - SafePassage India{% endblock %}
+
+{% block dashboard_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+    body { font-family: 'Outfit', sans-serif; }
+    .main-content {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 24%),
+            linear-gradient(180deg, #eef6ff 0%, #f8fafc 100%);
+    }
+    .tourist-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .hero-panel {
+        background:
+            radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 30%),
+            linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.94));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 28px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+        padding: 22px;
+    }
+    .hero-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+    }
+    .hero-eyebrow {
+        color: #2563eb;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+    .hero-title {
+        color: #0f172a;
+        font-size: clamp(1.9rem, 3vw, 2.7rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin-bottom: 10px;
+    }
+    .hero-copy {
+        color: #475569;
+        font-size: 0.98rem;
+        line-height: 1.65;
+        margin-bottom: 0;
+        max-width: 760px;
+    }
+    .hero-coordinate {
+        color: #64748b;
+        font-size: 0.84rem;
+        margin-top: 12px;
+    }
+    .hero-side {
+        background: rgba(15, 23, 42, 0.04);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 18px;
+    }
+    .hero-side-label {
+        color: #0f172a;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+    }
+    .hero-side-title {
+        color: #0f172a;
+        font-size: 1.06rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+    .hero-side-note {
+        color: #475569;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        margin-bottom: 0;
+    }
+    .profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .profile-actions .btn {
+        border-radius: 999px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        padding: 0.65rem 1rem;
+    }
+    .hero-actions-grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .hero-actions-grid .btn {
+        border-radius: 999px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        min-height: 46px;
+        padding: 0.8rem 1rem;
+    }
+    .hero-footnote {
+        align-items: center;
+        color: #334155;
+        display: flex;
+        font-size: 0.86rem;
+        font-weight: 600;
+        gap: 10px;
+    }
+    .hero-footnote i {
+        align-items: center;
+        background: rgba(37, 99, 235, 0.1);
+        border-radius: 999px;
+        color: #1d4ed8;
+        display: inline-flex;
+        height: 30px;
+        justify-content: center;
+        width: 30px;
+    }
+    .card-risk {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        border-radius: 22px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+        padding: 18px;
+    }
+    .fw-800 { font-weight: 800; }
+    .x-small { font-size: 0.74rem; }
+    .summary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 13px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .summary-pill.location { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .summary-pill.status { background: rgba(16, 185, 129, 0.12); color: #047857; }
+    .section-intro {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+    .section-kicker {
+        color: #2563eb;
+        display: block;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+    }
+    .section-title {
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 0;
+    }
+    .circular-progress {
+        position: relative;
+        width: 106px;
+        height: 106px;
+        border-radius: 50%;
+        background: conic-gradient(#10b981 0%, #dbeafe 0deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    .circular-progress::before {
+        content: "";
+        position: absolute;
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+    }
+    .circular-progress span { position: relative; font-size: 1.35rem; font-weight: 800; color: #0f172a; }
+    .risk-pill, .severity-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+    .risk-low { background: rgba(16, 185, 129, 0.12); color: #047857; }
+    .risk-medium { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+    .risk-high { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+    .risk-unavailable { background: rgba(100, 116, 139, 0.14); color: #475569; }
+    .metric-card {
+        height: 100%;
+        min-height: 210px;
+    }
+    .list-stack { display: flex; flex-direction: column; gap: 10px; }
+    .list-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        padding: 14px;
+    }
+    .empty-state {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px dashed rgba(148, 163, 184, 0.45);
+        border-radius: 18px;
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        padding: 14px;
+    }
+    .signal-grid, .translate-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .signal-box {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(37, 99, 235, 0.08);
+        color: #1e3a8a;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .resource-cta {
+        border-radius: 999px;
+        font-size: 0.84rem;
+        font-weight: 800;
+        margin-top: 12px;
+        min-height: 42px;
+    }
+    .map-card {
+        height: 470px;
+        overflow: hidden;
+        padding: 0;
+        position: relative;
+    }
+    #touristLiveMap { width: 100%; height: 100%; }
+    .tourist-safe-resource-pin {
+        align-items: center;
+        background: #2563eb;
+        border: 2px solid #ffffff;
+        border-radius: 50% 50% 50% 0;
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.34);
+        color: #ffffff;
+        display: flex;
+        font-size: 0.74rem;
+        font-weight: 800;
+        height: 28px;
+        justify-content: center;
+        transform: rotate(-45deg);
+        width: 28px;
+    }
+    .tourist-safe-resource-pin span { transform: rotate(45deg); }
+    .map-overlay {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        width: min(295px, calc(100% - 32px));
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 18px;
+        padding: 14px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+        z-index: 1000;
+    }
+    .culture-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .culture-col {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        padding: 14px;
+    }
+    .culture-col ul { margin: 0; padding-left: 18px; color: #475569; }
+    .culture-col li + li { margin-top: 8px; }
+    .translator {
+        background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+    }
+    .translator-field, .translator-select {
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.35);
+        color: white;
+    }
+    .translator-output {
+        min-height: 98px;
+        border-radius: 18px;
+        padding: 14px;
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+    .readiness-box {
+        align-items: flex-start;
+        display: flex;
+        gap: 12px;
+    }
+    .readiness-icon {
+        align-items: center;
+        background: rgba(14, 165, 233, 0.1);
+        border-radius: 18px;
+        color: #0284c7;
+        display: inline-flex;
+        font-size: 1.35rem;
+        height: 48px;
+        justify-content: center;
+        width: 48px;
+    }
+    @media (max-width: 1399.98px) {
+        .hero-actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 1199.98px) {
+        .hero-grid,
+        .culture-grid {
+            grid-template-columns: 1fr;
+        }
+        .map-card {
+            height: 430px;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .hero-panel,
+        .card-risk {
+            border-radius: 22px;
+            padding: 16px;
+        }
+        .summary-pill,
+        .profile-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .signal-grid,
+        .translate-actions,
+        .hero-actions-grid {
+            grid-template-columns: 1fr;
+        }
+        .map-card {
+            height: 360px;
+        }
+        .map-overlay {
+            width: calc(100% - 24px);
+            left: 12px;
+            bottom: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2 tourist-shell" id="touristDashboardRoot" data-contact-count="{{ emergency_contacts_count|default:0 }}">
+    <section class="hero-panel">
+        <div class="hero-grid">
+            <div>
+                <div class="hero-eyebrow">Tourist Safety Command</div>
+                <h1 class="hero-title">Explore <span class="text-primary">Safe</span></h1>
+                <p class="hero-copy">Live local-travel protection for walking, cab rides, and public transport with real-time risk awareness, cultural guidance, translation support, and emergency readiness.</p>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <span class="summary-pill location"><i class="bi bi-geo-alt-fill"></i><span id="liveLocationLabel">Detecting live location...</span></span>
+                    <span class="summary-pill status"><i class="bi bi-shield-lock-fill"></i><span id="gpsLockBadge">GPS pending</span></span>
+                </div>
+                <p class="hero-coordinate mb-0" id="coordinateLabel">Waiting for browser geolocation permission.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <div class="section-intro">
+        <div>
+            <span class="section-kicker">Live Overview</span>
+            <h2 class="section-title">Current safety signals</h2>
+        </div>
+        <span class="small text-muted">Risk, alerts, resources, and embassy support are all location-aware.</span>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card-risk metric-card text-center">
+                <p class="text-muted small fw-800 text-uppercase mb-3">Current Risk Score</p>
+                <div class="circular-progress mb-3" id="riskCircle"><span id="riskValue">--</span></div>
+                <div class="risk-pill risk-unavailable" id="riskBadge">LOCATING</div>
+                <p class="small text-muted mt-3 mb-2" id="riskAdvice">Risk analysis will start after live location sync.</p>
+                <p class="small text-muted mb-0" id="syncTime">Sync not started</p>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card-risk metric-card">
+                <p class="text-muted small fw-800 text-uppercase mb-3 d-flex justify-content-between">
+                    <span>Primary Alert</span><i class="bi bi-radar text-warning"></i>
+                </p>
+                <div class="list-card mb-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <span class="severity-pill risk-unavailable" id="primaryAlertType">WAITING</span>
+                        <span class="small text-muted" id="primaryAlertMeta">Pending</span>
+                    </div>
+                    <h5 class="fw-800 mt-3 mb-1" id="primaryAlertTitle">Waiting for nearby alerts</h5>
+                    <p class="small text-muted mb-0" id="primaryAlertDescription">Real incident and hotspot data will appear here.</p>
+                </div>
+                <div class="signal-grid">
+                    <div class="signal-box" id="zoneSignalChip">Zone signal: --</div>
+                    <div class="signal-box" id="weatherSignalChip">Weather signal: --</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card-risk metric-card border-start border-4 border-primary">
+                <p class="text-muted small fw-800 text-uppercase mb-3">Safety Infrastructure</p>
+                <div class="list-stack" id="resourceList">
+                    <div class="empty-state">Nearby hospitals, police stations, and verified safe points will appear here.</div>
+                </div>
+                <a href="{% url 'tourist_map_hub' %}" class="btn btn-outline-primary w-100 resource-cta">Open Live Safety Map</a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card-risk metric-card border-start border-4 border-danger">
+                <p class="text-muted small fw-800 text-uppercase mb-3">Diplomatic Support</p>
+                <div class="list-card mb-3">
+                    <h6 class="fw-800 text-danger mb-1" id="embassyName">Embassy details pending</h6>
+                    <p class="small text-muted mb-0" id="embassyAddress">Grant live location to load embassy support details.</p>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="#" class="btn btn-danger rounded-pill fw-bold disabled" id="embassyCallLink">
+                        <i class="bi bi-telephone-outbound-fill me-2"></i><span id="embassyPhoneText">NO DIRECT LINE</span>
+                    </a>
+                    <div class="small text-muted" id="embassyAlert">Embassy alert guidance will update after sync.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card-risk map-card mb-4">
+                <div id="touristLiveMap"></div>
+                <div class="map-overlay">
+                    <h6 class="fw-800 mb-1">Live Position Intelligence</h6>
+                    <p class="small text-muted mb-3" id="mapLocationStatus">Waiting for current coordinates.</p>
+                    <div class="small text-muted">Legend: Green = safer corridor, Yellow = caution, Red = hotspot, Blue = safe resource</div>
+                    <div class="small text-muted mt-2" id="mapResourceCount">Resources: 0 nearby</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    const SAVED_LOCATION = {% if saved_location %}{
+        lat: {{ saved_location.latitude|floatformat:6 }},
+        lng: {{ saved_location.longitude|floatformat:6 }}
+    }{% else %}null{% endif %};
+    const state = {
+        map: null,
+        userMarker: null,
+        hotspotLayers: [],
+        resourceLayers: [],
+        lastRefreshAt: 0,
+        lastCoords: null,
+        lastMapCoords: null,
+        bestAccuracy: null,
+        hasCenteredMap: false,
+        livePlaceLabel: '',
+        liveAreaLabel: '',
+        reverseGeocodeSeq: 0,
+        liveLocationCache: {},
+        translatedText: '',
+        contactCount: Number(document.getElementById('touristDashboardRoot').dataset.contactCount || 0),
+        bootstrapTimer: null,
+        watchId: null,
+    };
+
+    function setText(id, value) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value;
+    }
+
+    function setHtml(id, value) {
+        const node = document.getElementById(id);
+        if (node) node.innerHTML = value;
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+
+    function riskClass(level) {
+        if (level === 'HIGH') return 'risk-high';
+        if (level === 'MEDIUM') return 'risk-medium';
+        if (level === 'UNAVAILABLE' || level === 'LOCATING' || level === 'NO ALERTS') return 'risk-unavailable';
+        return 'risk-low';
+    }
+
+    function safeResourcePin(resourceType) {
+        const normalizedType = String(resourceType || '').toLowerCase();
+        const glyph = normalizedType.includes('police') ? 'P' : normalizedType.includes('hospital') ? 'H' : '+';
+        return L.divIcon({
+            className: '',
+            html: `<div class="tourist-safe-resource-pin"><span>${glyph}</span></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+            popupAnchor: [0, -28],
+        });
+    }
+
+    function distanceText(distanceKm) {
+        if (distanceKm == null) return 'Distance unavailable';
+        return distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m away` : `${distanceKm.toFixed(1)} km away`;
+    }
+
+    function formatCoordinateLabel(lat, lng) {
+        return `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`;
+    }
+
+    function formatLocationLabel(label, lat, lng, fallback) {
+        if (label) return label;
+        if (lat != null && lng != null) return formatCoordinateLabel(lat, lng);
+        return fallback || 'Live location unavailable';
+    }
+
+    function formatRiskLabel(label) {
+        return label || 'UNAVAILABLE';
+    }
+
+    function formatSignalValue(value) {
+        return value == null ? 'Unavailable' : value;
+    }
+
+    function setRiskVisual(score, label) {
+        const circle = document.getElementById('riskCircle');
+        const value = document.getElementById('riskValue');
+        const badge = document.getElementById('riskBadge');
+        let color = '#94a3b8';
+        let progress = 0;
+        if (score != null) {
+            progress = score;
+            color = '#10b981';
+            if (score >= 75) color = '#ef4444';
+            else if (score >= 45) color = '#f59e0b';
+        }
+        circle.style.background = `conic-gradient(${color} ${progress}%, #dbeafe 0deg)`;
+        value.textContent = score != null ? score : '--';
+        badge.textContent = formatRiskLabel(label);
+        badge.className = `risk-pill ${riskClass(label)}`;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then((response) => {
+            if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+            return response.json();
+        });
+    }
+
+    function haversineKm(lat1, lng1, lat2, lng2) {
+        const earthRadiusKm = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+        return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function shouldRefresh(lat, lng) {
+        if (!state.lastCoords) return true;
+        const elapsedMs = Date.now() - state.lastRefreshAt;
+        const movedKm = haversineKm(state.lastCoords.lat, state.lastCoords.lng, lat, lng);
+        return elapsedMs > 45000 || movedKm > 0.15;
+    }
+
+    function shouldUsePosition(lat, lng, accuracy) {
+        if (!state.lastCoords) return true;
+        if (accuracy == null || state.bestAccuracy == null) return true;
+
+        const movedKm = haversineKm(state.lastCoords.lat, state.lastCoords.lng, lat, lng);
+        const accuracyGotMuchWorse = accuracy > Math.max(state.bestAccuracy * 1.5, state.bestAccuracy + 120);
+
+        if (accuracyGotMuchWorse && movedKm < 0.05) {
+            return false;
+        }
+        return true;
+    }
+
+    function shouldRefreshForAccuracy(accuracy) {
+        if (accuracy == null) return false;
+        if (state.bestAccuracy == null) return true;
+        return accuracy < Math.max(state.bestAccuracy - 25, state.bestAccuracy * 0.75);
+    }
+
+    function applyKnownLocation(lat, lng, accuracy, sourceLabel) {
+        updateLocation(lat, lng, accuracy, sourceLabel || state.livePlaceLabel || state.liveAreaLabel);
+        updateMarkerPosition(lat, lng, sourceLabel || state.livePlaceLabel || state.liveAreaLabel, true);
+        if (shouldRefresh(lat, lng)) {
+            refreshDashboard(lat, lng, accuracy);
+        }
+    }
+
+    function bootstrapFromAvailableLocation() {
+        if (window.currentLocation && window.currentLocation.lat != null && window.currentLocation.lng != null) {
+            applyKnownLocation(
+                window.currentLocation.lat,
+                window.currentLocation.lng,
+                window.currentLocation.accuracy,
+                window.currentLocation.source === 'saved' ? 'Last saved location' : 'Live location detected'
+            );
+            return true;
+        }
+        if (SAVED_LOCATION) {
+            applyKnownLocation(SAVED_LOCATION.lat, SAVED_LOCATION.lng, null, 'Last saved location');
+            setText('gpsLockBadge', 'Using saved location');
+            return true;
+        }
+        return false;
+    }
+
+    function describeLocationFailure(error) {
+        const baseMessage = error && error.message ? error.message : 'Unable to access live location from this browser.';
+        const localhostHint = window.location.hostname === '127.0.0.1'
+            ? ' If this browser blocks GPS on 127.0.0.1, try the same page on localhost.'
+            : '';
+        const secureHint = window.isSecureContext
+            ? ''
+            : ' This page is not in a secure context, so browser geolocation may be blocked.';
+        return `${baseMessage}${secureHint}${localhostHint}`;
+    }
+
+    function locationCacheKey(lat, lng) {
+        return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    }
+
+    function buildLiveLocationLabel(payload, fallback) {
+        const address = payload && payload.address ? payload.address : {};
+        const parts = [
+            address.suburb || address.neighbourhood || address.city_district || address.road,
+            address.city || address.town || address.village || address.county,
+            address.state,
+        ];
+        const cleaned = [];
+        parts.forEach((part) => {
+            if (!part) return;
+            const normalized = part.trim();
+            if (!normalized) return;
+            if (cleaned.some((existing) => existing.toLowerCase() === normalized.toLowerCase())) return;
+            cleaned.push(normalized);
+        });
+        if (cleaned.length) return cleaned.slice(0, 2).join(', ');
+        const displayName = payload && payload.display_name ? payload.display_name : '';
+        const displayParts = displayName.split(',').map((part) => part.trim()).filter(Boolean);
+        return displayParts.length ? displayParts.slice(0, 2).join(', ') : fallback;
+    }
+
+    function updateMarkerPosition(lat, lng, label, forceCenter = false) {
+        if (!state.map) return;
+        const resolvedLabel = formatLocationLabel(label || state.livePlaceLabel || state.liveAreaLabel, lat, lng, 'Current coordinates');
+        if (!state.userMarker) state.userMarker = L.marker([lat, lng]).addTo(state.map);
+        state.userMarker.setLatLng([lat, lng]).bindPopup(`<strong>You are here</strong><br>${escapeHtml(resolvedLabel)}`);
+
+        const currentLatLng = L.latLng(lat, lng);
+        const movedKm = state.lastMapCoords ? haversineKm(state.lastMapCoords.lat, state.lastMapCoords.lng, lat, lng) : Infinity;
+        const bounds = state.map.getBounds();
+        const outsideView = !bounds || !bounds.pad(-0.35).contains(currentLatLng);
+        if (!state.hasCenteredMap || forceCenter || outsideView || movedKm > 0.05) {
+            const currentZoom = state.map.getZoom ? state.map.getZoom() : 14;
+            state.map.setView([lat, lng], Math.max(currentZoom, 15), { animate: state.hasCenteredMap });
+            state.hasCenteredMap = true;
+        }
+        state.lastMapCoords = { lat, lng };
+    }
+
+    function reverseGeocodeLiveLocation(lat, lng, accuracy) {
+        const cacheKey = locationCacheKey(lat, lng);
+        if (state.liveLocationCache[cacheKey]) {
+            state.livePlaceLabel = state.liveLocationCache[cacheKey];
+            updateLocation(lat, lng, accuracy, state.livePlaceLabel);
+            updateMarkerPosition(lat, lng, state.livePlaceLabel);
+            return Promise.resolve(state.livePlaceLabel);
+        }
+
+        const requestId = ++state.reverseGeocodeSeq;
+        const query = new URLSearchParams({
+            format: 'jsonv2',
+            lat: lat.toFixed(6),
+            lon: lng.toFixed(6),
+            zoom: '16',
+            addressdetails: '1',
+        });
+
+        return fetch(`https://nominatim.openstreetmap.org/reverse?${query.toString()}`, {
+            headers: { Accept: 'application/json' },
+        }).then((response) => {
+            if (!response.ok) throw new Error(`Reverse geocode failed: ${response.status}`);
+            return response.json();
+        }).then((payload) => {
+            if (requestId !== state.reverseGeocodeSeq) return null;
+            const label = buildLiveLocationLabel(payload, null);
+            if (!label) return null;
+            state.liveLocationCache[cacheKey] = label;
+            state.livePlaceLabel = label;
+            updateLocation(lat, lng, accuracy, label);
+            updateMarkerPosition(lat, lng, label);
+            return label;
+        }).catch(() => null);
+    }
+
+    function updateLocation(lat, lng, accuracy, label) {
+        const locationLabel = formatLocationLabel(label || state.livePlaceLabel || state.liveAreaLabel, lat, lng, 'Live location detected');
+        const source = window.currentLocation && window.currentLocation.source ? window.currentLocation.source : 'live';
+        let accuracyLabel = 'GPS locked';
+        if (source === 'ip') {
+            accuracyLabel = 'Approximate area (IP)';
+        } else if (source === 'saved') {
+            accuracyLabel = 'Using saved location';
+        } else if (accuracy) {
+            accuracyLabel = accuracy > 500
+                ? `GPS approximate (${Math.round(accuracy)} m)`
+                : `GPS locked (${Math.round(accuracy)} m)`;
+        }
+        setText('liveLocationLabel', locationLabel);
+        setText('gpsLockBadge', accuracyLabel);
+        setText('coordinateLabel', `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}${accuracy ? `, accuracy ${Math.round(accuracy)} m` : ''}`);
+        setText('mapLocationStatus', `${locationLabel} | ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        setText('readinessStatus', `Protection active for ${locationLabel}. Emergency contacts on file: ${state.contactCount}.`);
+    }
+
+    function priorityResourcesFromPayload(payload) {
+        const resources = [];
+        const seen = new Set();
+        const add = (resource) => {
+            if (!resource || resource.latitude == null || resource.longitude == null) return;
+            const key = `${String(resource.name || '').toLowerCase()}|${Number(resource.latitude).toFixed(5)}|${Number(resource.longitude).toFixed(5)}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            resources.push(resource);
+        };
+        add(payload.nearest_hospital);
+        add(payload.nearest_police_station);
+        (payload.nearby_resources || []).forEach(add);
+        return resources;
+    }
+
+    function renderResources(resources) {
+        if (!resources || !resources.length) {
+            setHtml('resourceList', '<div class="empty-state">No nearby hospitals, police stations, or verified safety services were found for this location yet.</div>');
+            setText('mapResourceCount', 'Resources: 0 nearby');
+            return;
+        }
+        setHtml('resourceList', resources.map((resource) => `
+            <div class="list-card">
+                <h6 class="fw-800 mb-1">${escapeHtml(resource.name)}</h6>
+                <p class="small text-muted mb-1">${escapeHtml(resource.type)} | ${escapeHtml(distanceText(resource.distance_km))}</p>
+                <p class="x-small text-muted mb-0">${escapeHtml(resource.address || 'Address unavailable')}</p>
+            </div>
+        `).join(''));
+        setText('mapResourceCount', `Resources: ${resources.length} nearby`);
+    }
+
+    function renderAlerts(alerts, fallbackRisk) {
+        const primary = alerts && alerts.length ? alerts[0] : null;
+        if (primary) {
+            const typeNode = document.getElementById('primaryAlertType');
+            const severity = formatRiskLabel(primary.severity);
+            typeNode.textContent = severity;
+            typeNode.className = `severity-pill ${riskClass(severity)}`;
+            setText('primaryAlertMeta', distanceText(primary.distance_km));
+            setText('primaryAlertTitle', primary.title || 'Nearby alert');
+            setText('primaryAlertDescription', primary.description || 'No description available.');
+            return;
+        }
+
+        const fallbackNode = document.getElementById('primaryAlertType');
+        fallbackNode.textContent = 'NO ALERTS';
+        fallbackNode.className = `severity-pill ${riskClass('NO ALERTS')}`;
+        setText('primaryAlertMeta', '0 nearby incidents');
+        setText(
+            'primaryAlertTitle',
+            formatLocationLabel(
+                fallbackRisk.location,
+                fallbackRisk.coordinates && fallbackRisk.coordinates.latitude,
+                fallbackRisk.coordinates && fallbackRisk.coordinates.longitude,
+                'No live alerts'
+            )
+        );
+        setText('primaryAlertDescription', 'No active incidents or stored hotspot alerts are currently linked to this position.');
+    }
+
+    function renderEmbassy(data) {
+        setText('embassyName', data.embassy_name || 'Embassy unavailable');
+        setText('embassyAddress', data.address || 'Address unavailable');
+        setText('embassyAlert', data.zone_alert || 'Keep embassy contacts saved offline.');
+        const phone = data.phone || data.emergency_number || '';
+        setText('embassyPhoneText', phone || 'NO DIRECT LINE');
+        const link = document.getElementById('embassyCallLink');
+        if (phone) {
+            link.href = `tel:${phone.replace(/[^+\d]/g, '')}`;
+            link.classList.remove('disabled');
+        } else {
+            link.href = '#';
+            link.classList.add('disabled');
+        }
+    }
+
+    function clearMapLayers() {
+        state.hotspotLayers.forEach((layer) => state.map.removeLayer(layer));
+        state.resourceLayers.forEach((layer) => state.map.removeLayer(layer));
+        state.hotspotLayers = [];
+        state.resourceLayers = [];
+    }
+
+    function renderMap(riskData, lat, lng) {
+        clearMapLayers();
+        updateMarkerPosition(lat, lng, state.livePlaceLabel || riskData.location || state.liveAreaLabel, true);
+
+        (riskData.nearby_hotspots || []).forEach((hotspot) => {
+            let color = '#10b981';
+            if (hotspot.risk_score >= 75) color = '#ef4444';
+            else if (hotspot.risk_score >= 45) color = '#f59e0b';
+            const layer = L.circle([hotspot.latitude, hotspot.longitude], {
+                color: color, fillColor: color, fillOpacity: 0.28, radius: 420, weight: 2,
+            }).addTo(state.map).bindPopup(`<strong>${escapeHtml(hotspot.city || hotspot.risk_type)}</strong><br>${escapeHtml(hotspot.description)}<br><small>Risk ${hotspot.risk_score}%</small>`);
+            state.hotspotLayers.push(layer);
+        });
+
+        priorityResourcesFromPayload(riskData).forEach((resource) => {
+            const layer = L.marker([resource.latitude, resource.longitude], {
+                icon: safeResourcePin(resource.type),
+            }).addTo(state.map).bindPopup(`<strong>${escapeHtml(resource.name)}</strong><br>${escapeHtml(resource.type)}<br><small>${escapeHtml(distanceText(resource.distance_km))}</small>`);
+            state.resourceLayers.push(layer);
+        });
+    }
+
+    function syncLocation(lat, lng) {
+        return fetch('/update-location/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ latitude: lat, longitude: lng }),
+        });
+    }
+
+    function refreshTranslation() {
+        const text = document.getElementById('translateInput').value.trim();
+        const language = document.getElementById('translateLanguage').value;
+        if (!text) {
+            state.translatedText = '';
+            setText('translationOutput', 'Translator is waiting for your phrase.');
+            setText('translationNote', 'Translation requires text input.');
+            return;
+        }
+        setText('translationOutput', 'Translating...');
+        setText('translationNote', 'Contacting the emergency phrase service.');
+        fetchJson('/api/translate/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ text: text, target_language: language }),
+        }).then((data) => {
+            const translated = data.translated_text || (data.translations ? data.translations[language] : '');
+            if (!translated || data.translation_mode === 'unavailable') {
+                state.translatedText = '';
+                setText('translationOutput', 'No translation is available for this phrase right now.');
+                setText('translationNote', data.note || 'Try a supported emergency phrase such as help, police, or ambulance.');
+                return;
+            }
+            state.translatedText = translated;
+            setText('translationOutput', translated);
+            setText(
+                'translationNote',
+                data.translation_mode === 'phrasebook'
+                    ? 'Exact emergency phrase matched from the local phrasebook.'
+                    : data.translation_mode === 'intent-match'
+                    ? (data.note || 'Matched your request to the nearest supported emergency phrase.')
+                    : (data.note || 'Offline translation completed.')
+            );
+        }).catch(() => {
+            state.translatedText = '';
+            setText('translationOutput', 'Translation unavailable.');
+            setText('translationNote', 'Translation service is unavailable right now.');
+        });
+    }
+
+    function speakTranslation() {
+        const phrase = state.translatedText || document.getElementById('translateInput').value.trim();
+        if (!phrase) return;
+        const target = document.getElementById('translateLanguage').value;
+        const languageMap = { hi: 'hi-IN', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN' };
+        if (!window.speechSynthesis) {
+            alert('Speech playback is not supported in this browser.');
+            return;
+        }
+        const voices = window.speechSynthesis.getVoices() || [];
+        const preferred = (
+            voices.find((voice) => voice.lang === languageMap[target])
+            || voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith(target))
+            || voices.find((voice) => voice.default)
+            || null
+        );
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        if (preferred) {
+            utterance.voice = preferred;
+            utterance.lang = preferred.lang || (languageMap[target] || 'hi-IN');
+        } else {
+            utterance.lang = languageMap[target] || 'hi-IN';
+        }
+        utterance.rate = 0.92;
+        utterance.volume = 1;
+        try {
+            window.speechSynthesis.resume();
+        } catch (error) {
+            // Resume can fail harmlessly on some browsers.
+        }
+        window.setTimeout(() => window.speechSynthesis.speak(utterance), 30);
+    }
+
+    function refreshDashboard(lat, lng, accuracy) {
+        const params = new URLSearchParams({ lat: lat.toFixed(6), lng: lng.toFixed(6) });
+        Promise.all([
+            fetchJson(`/api/predict-risk/?${params.toString()}`),
+            fetchJson(`/api/incidents/?${params.toString()}`),
+            fetchJson(`/api/weather-risk/?${params.toString()}`),
+            fetchJson(`/api/cultural-advice/?${params.toString()}`),
+            fetchJson(`/api/embassy-info/?${params.toString()}`),
+        ]).then(([risk, incidents, weather, culture, embassy]) => {
+            state.liveAreaLabel = risk.location || state.liveAreaLabel;
+            updateLocation(lat, lng, accuracy, state.livePlaceLabel || state.liveAreaLabel);
+            setRiskVisual(risk.risk_score, formatRiskLabel(risk.risk_label));
+            setText('riskAdvice', risk.advice || 'No risk advice available.');
+            setText('syncTime', `Last synced ${new Date().toLocaleTimeString()}`);
+            setText('zoneSignalChip', `Zone signal: ${formatSignalValue(risk.breakdown.zone_signal)}`);
+            setText('weatherSignalChip', `Weather signal: ${formatSignalValue(risk.breakdown.weather_signal)}`);
+            renderResources(priorityResourcesFromPayload(risk));
+            renderAlerts(incidents.alerts || [], risk);
+            renderEmbassy(embassy);
+            renderMap(risk, lat, lng);
+            syncLocation(lat, lng);
+            state.lastRefreshAt = Date.now();
+            state.lastCoords = { lat, lng };
+        }).catch(() => {
+            setText('riskAdvice', 'Live dashboard refresh failed. We will retry automatically.');
+        });
+    }
+
+    function onLocationError(error) {
+        if (state.lastCoords) {
+            setText('gpsLockBadge', 'GPS signal lost');
+            setText('coordinateLabel', `${error && error.message ? error.message : 'Unable to refresh live location.'} Showing last known position.`);
+            return;
+        }
+        if (bootstrapFromAvailableLocation()) {
+            setText('coordinateLabel', describeLocationFailure(error));
+            return;
+        }
+        setText('liveLocationLabel', 'Location permission required');
+        setText('gpsLockBadge', 'GPS unavailable');
+        setText('coordinateLabel', describeLocationFailure(error));
+        setRiskVisual(null, 'UNAVAILABLE');
+        setText('readinessStatus', `Enable location to load live risk details. Emergency contacts on file: ${state.contactCount}.`);
+    }
+
+    function processResolvedLocation(location, sourceLabel) {
+        if (!location || location.lat == null || location.lng == null) {
+            return;
+        }
+        const lat = Number(location.lat);
+        const lng = Number(location.lng);
+        const accuracy = location.accuracy != null ? Number(location.accuracy) : null;
+        const accuracyImproved = shouldRefreshForAccuracy(accuracy);
+
+        if (state.bootstrapTimer) {
+            window.clearTimeout(state.bootstrapTimer);
+            state.bootstrapTimer = null;
+        }
+
+        if (!shouldUsePosition(lat, lng, accuracy)) {
+            return;
+        }
+
+        if (accuracy != null) {
+            state.bestAccuracy = state.bestAccuracy == null ? accuracy : Math.min(state.bestAccuracy, accuracy);
+        }
+
+        const label = location.label || sourceLabel || state.livePlaceLabel || state.liveAreaLabel;
+        updateLocation(lat, lng, accuracy, label);
+        updateMarkerPosition(lat, lng, label, accuracyImproved);
+
+        if (window.currentLocation.source === 'live') {
+            reverseGeocodeLiveLocation(lat, lng, accuracy);
+        }
+
+        if (!shouldRefresh(lat, lng) && !accuracyImproved) {
+            return;
+        }
+        refreshDashboard(lat, lng, accuracy);
+    }
+
+    function initMap() {
+        state.map = L.map('touristLiveMap', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
+        L.control.zoom({ position: 'bottomleft' }).addTo(state.map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(state.map);
+    }
+
+    function startTracking() {
+        if (!navigator.geolocation) {
+            requestBestAvailableLocation({
+                allowIpFallback: true,
+                geolocationOptions: { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+            }).then((location) => {
+                const label = location && location.source === 'ip'
+                    ? (location.label || 'Approximate area detected from network')
+                    : 'Last saved location';
+                processResolvedLocation(location, label);
+            }).catch((error) => {
+                onLocationError(error || { message: 'Geolocation is not supported in this browser.' });
+            });
+            return;
+        }
+
+        bootstrapFromAvailableLocation();
+
+        const trackingOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 };
+
+        // Listen for location set manually via the banner
+        window.addEventListener('manualLocationSet', (e) => {
+            const d = e.detail;
+            if (!d || d.lat == null) return;
+            if (state.bootstrapTimer) { window.clearTimeout(state.bootstrapTimer); state.bootstrapTimer = null; }
+            state.bestAccuracy = d.accuracy || null;
+            updateLocation(d.lat, d.lng, d.accuracy, d.label || 'Manually selected location');
+            updateMarkerPosition(d.lat, d.lng, d.label || 'Manually selected location', true);
+            refreshDashboard(d.lat, d.lng, d.accuracy);
+        });
+
+        if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+                if (result.state === 'denied' && !state.lastCoords) {
+                    requestBestAvailableLocation({
+                        allowIpFallback: true,
+                        geolocationOptions: trackingOptions,
+                    }).then((location) => {
+                        const label = location.source === 'ip'
+                            ? (location.label || 'Approximate area detected from network')
+                            : 'Last saved location';
+                        processResolvedLocation(location, label);
+                    }).catch(() => {
+                        onLocationError({ message: 'Location permission is blocked for this site.' });
+                    });
+                }
+            }).catch(() => {});
+        }
+
+        state.bootstrapTimer = window.setTimeout(() => {
+            if (!state.lastCoords) {
+                if (bootstrapFromAvailableLocation()) {
+                    setText('coordinateLabel', describeLocationFailure({ message: 'Live GPS is taking longer than expected.' }));
+                } else {
+                    onLocationError({ message: 'Live GPS is taking longer than expected.' });
+                }
+            }
+        }, 5000);
+
+        requestBestAvailableLocation({
+            allowIpFallback: true,
+            geolocationOptions: trackingOptions,
+            onLivePosition: (position) => processResolvedLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                source: 'live',
+            }),
+            onFallback: (location) => {
+                const label = location && location.source === 'ip'
+                    ? (location.label || 'Approximate area detected from network')
+                    : 'Last saved location';
+                processResolvedLocation(location, label);
+            }
+        }).catch(onLocationError);
+
+        if (navigator.geolocation) {
+            if (state.watchId != null) {
+                navigator.geolocation.clearWatch(state.watchId);
+            }
+            state.watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    updateTrackedLocation(position, 'live');
+                    processResolvedLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        source: 'live',
+                    });
+                },
+                () => {
+                    requestBestAvailableLocation({
+                        allowIpFallback: true,
+                        geolocationOptions: trackingOptions,
+                    }).then((location) => {
+                        const label = location && location.source === 'ip'
+                            ? (location.label || 'Approximate area detected from network')
+                            : 'Last saved location';
+                        processResolvedLocation(location, label);
+                    }).catch(onLocationError);
+                },
+                trackingOptions
+            );
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        const translateButton = document.getElementById('translateButton');
+        const speakButton = document.getElementById('speakButton');
+        if (translateButton) translateButton.addEventListener('click', refreshTranslation);
+        if (speakButton) speakButton.addEventListener('click', speakTranslation);
+        startTracking();
+    });
+
+    // Also handle manual location set after DOM is ready (in case event fires late)
+    window.addEventListener('manualLocationSet', (e) => {
+        const d = e.detail;
+        if (!d || d.lat == null || !state.map) return;  // already handled above, skip
+    });
+</script>
+{% endblock %}

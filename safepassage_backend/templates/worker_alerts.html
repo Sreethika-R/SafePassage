@@ -1,0 +1,429 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Worker Alerts - SafePassage India{% endblock %}
+
+{% block dashboard_css %}
+<style>
+    .alerts-card {
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 26px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        padding: 24px;
+    }
+    .alert-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    .alert-item,
+    .empty-state {
+        background: rgba(248, 250, 252, 0.94);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 18px;
+        padding: 16px;
+    }
+    .empty-state {
+        color: #64748b;
+    }
+    .meta-row {
+        color: #64748b;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        gap: 12px;
+        margin-top: 8px;
+    }
+    .search-row { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto auto; }
+    .search-row .form-control {
+        border-radius: 16px;
+        min-height: 48px;
+    }
+    .search-row .btn {
+        border-radius: 16px;
+        font-weight: 700;
+        min-width: 120px;
+    }
+    .search-results {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 14px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .search-result {
+        background: rgba(248, 250, 252, 0.98);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 18px;
+        color: #0f172a;
+        cursor: pointer;
+        padding: 14px 16px;
+        text-align: left;
+        width: 100%;
+    }
+    .search-result-title { display: block; font-size: 0.96rem; font-weight: 800; margin-bottom: 4px; }
+    .search-result-meta { color: #64748b; display: block; font-size: 0.82rem; }
+    .report-location-summary {
+        background: rgba(248, 250, 252, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        color: #475569;
+        padding: 14px 16px;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="alerts-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h1 class="fw-bold mb-0">Worker Alerts</h1>
+                    <button class="btn btn-danger rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#reportScamModal">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Report Scam
+                    </button>
+                </div>
+                <p class="text-muted mb-4">Live high-risk signals, route warnings, and shift-monitor alerts tied to your current worker location.</p>
+                <div class="small text-muted mb-4" id="workerAlertsLocationMeta">Waiting for live location name.</div>
+                <div class="alert-stack" id="workerAlertsList">
+                    <div class="empty-state">Waiting for live worker alerts.</div>
+                </div>
+            </section>
+        </div>
+        <div class="col-lg-4">
+            <section class="alerts-card h-100">
+                <h5 class="fw-bold mb-3">Community Safety</h5>
+                <p class="small text-muted">As a night worker, your reports help other workers and tourists stay safe. If you spot a scam or a dangerous zone, report it immediately.</p>
+                <div class="p-3 border rounded-4 bg-light">
+                    <div class="small fw-bold text-uppercase mb-2 text-danger">Guidelines</div>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Only report active, live threats.</li>
+                        <li>Provide clear descriptions.</li>
+                        <li>Include landmarks if possible.</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- Report Scam Modal -->
+<div class="modal fade" id="reportScamModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 28px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Report Live Scam</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">Your report will be shared with the SafePassage community to warn others in this area.</p>
+                <form id="scamReportForm">
+                    <div class="mb-3">
+                        <label class="field-label mb-2">Location source</label>
+                        <select class="form-select" id="workerScamLocationSource" style="border-radius: 16px; min-height: 48px;">
+                            <option value="active" selected>Use current live location</option>
+                            <option value="search">Search and choose scam location</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="workerScamSearchWrap" style="display:none;">
+                        <label class="field-label mb-2">Search scam location</label>
+                        <div class="search-row">
+                            <input type="text" class="form-control" id="workerScamPlaceInput" placeholder="Search the place where the scam happened" autocomplete="off">
+                            <button type="button" class="btn btn-outline-primary" id="workerScamPlaceSearchBtn">Search</button>
+                            <button type="button" class="btn btn-outline-secondary" id="workerScamUseLiveBtn">Use Live</button>
+                        </div>
+                        <div class="search-results" id="workerScamPlaceResults">
+                            <div class="empty-state">Search for the place where the scam happened, or use your current live location.</div>
+                        </div>
+                    </div>
+                    <div class="report-location-summary mb-3">
+                        <div class="fw-bold text-dark mb-1" id="workerScamSelectedLabel">Selected scam location: waiting for live GPS or place selection.</div>
+                        <div class="small" id="workerScamSelectedMeta">The chosen location will be attached to the scam report.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="field-label mb-2">Location label</label>
+                        <input class="form-control" id="workerScamLocationLabel" placeholder="Bus stop, factory gate, market lane..." style="border-radius: 16px; min-height: 48px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="field-label mb-2">Scam Description</label>
+                        <textarea class="profile-textarea w-100" id="scamDescription" placeholder="What kind of scam did you see? (e.g., Overcharging taxi, fake guide, etc.)" required style="min-height: 100px; border-radius: 16px;"></textarea>
+                    </div>
+                    <div class="mb-1 text-center">
+                        <div id="scamReportStatus" class="small mb-2"></div>
+                        <button type="submit" class="btn btn-danger btn-lg rounded-pill w-100 fw-bold py-3 shadow-sm">Submit Live Alert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const workerScamState = {
+            reportLocation: null,
+            searchResults: [],
+            searchToken: 0,
+            searchTimer: null,
+        };
+
+        function workerScamNormalizeQuery(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function workerScamFormatCoordinates(lat, lng) {
+            if (lat == null || lng == null) return 'Coordinates unavailable';
+            return `Lat ${Number(lat).toFixed(5)}, Lng ${Number(lng).toFixed(5)}`;
+        }
+
+        function workerScamSetReportLocation(location, sourceMode) {
+            if (!location || location.lat == null || location.lng == null) {
+                workerScamState.reportLocation = null;
+            } else {
+                workerScamState.reportLocation = {
+                    lat: Number(location.lat),
+                    lng: Number(location.lng),
+                    label: location.label || null,
+                    sourceMode: sourceMode || 'active',
+                };
+            }
+            const labelNode = document.getElementById('workerScamSelectedLabel');
+            const metaNode = document.getElementById('workerScamSelectedMeta');
+            const locationInput = document.getElementById('workerScamLocationLabel');
+            if (!labelNode || !metaNode) return;
+
+            if (!workerScamState.reportLocation) {
+                labelNode.textContent = 'Selected scam location: waiting for live GPS or place selection.';
+                metaNode.textContent = 'The chosen location will be attached to the scam report.';
+                return;
+            }
+
+            const displayLabel = workerScamState.reportLocation.label || workerScamFormatCoordinates(workerScamState.reportLocation.lat, workerScamState.reportLocation.lng);
+            const sourceLabel = workerScamState.reportLocation.sourceMode === 'searched' ? 'Searched place' : 'Live location';
+            labelNode.textContent = `Selected scam location: ${displayLabel}`;
+            metaNode.textContent = `${sourceLabel} | ${workerScamFormatCoordinates(workerScamState.reportLocation.lat, workerScamState.reportLocation.lng)}`;
+            if (locationInput && !locationInput.value.trim() && workerScamState.reportLocation.label) {
+                locationInput.value = workerScamState.reportLocation.label;
+            }
+        }
+
+        function workerScamRenderSearchResults(results, message) {
+            const container = document.getElementById('workerScamPlaceResults');
+            if (!container) return;
+            if (message) {
+                container.innerHTML = `<div class="empty-state">${message}</div>`;
+                return;
+            }
+            if (!Array.isArray(results) || !results.length) {
+                container.innerHTML = '<div class="empty-state">No place matches were found for this scam location search yet.</div>';
+                return;
+            }
+            container.innerHTML = results.map((item, index) => `
+                <button type="button" class="search-result" data-worker-place-index="${index}">
+                    <span class="search-result-title">${item.name || 'Selected place'}</span>
+                    <span class="search-result-meta">${item.description || item.kind || 'India location'}</span>
+                </button>
+            `).join('');
+        }
+
+        function workerScamSelectPlace(place) {
+            const input = document.getElementById('workerScamPlaceInput');
+            if (input) input.value = place.name || place.description || '';
+            workerScamRenderSearchResults([], `${place.name || 'Selected place'} attached to the worker scam report.`);
+            workerScamSetReportLocation(
+                { lat: place.latitude, lng: place.longitude, label: place.description || place.name },
+                'searched'
+            );
+        }
+
+        function workerScamRunPlaceSearch(forceSelection) {
+            const input = document.getElementById('workerScamPlaceInput');
+            const query = workerScamNormalizeQuery(input ? input.value : '');
+            if (query.length < 2) {
+                workerScamRenderSearchResults([], 'Enter at least two characters to search for the scam location.');
+                return;
+            }
+
+            const token = ++workerScamState.searchToken;
+            workerScamRenderSearchResults([], 'Searching places...');
+            fetch(`/api/worker/place-search/?q=${encodeURIComponent(query)}`)
+                .then((response) => response.json())
+                .then((payload) => {
+                    if (token !== workerScamState.searchToken) return;
+                    const results = Array.isArray(payload.results) ? payload.results : [];
+                    workerScamState.searchResults = results;
+                    workerScamRenderSearchResults(results);
+                    if (forceSelection && results.length) {
+                        workerScamSelectPlace(results[0]);
+                    }
+                })
+                .catch(() => {
+                    if (token !== workerScamState.searchToken) return;
+                    workerScamRenderSearchResults([], 'Place search is unavailable right now. Try again or use live location.');
+                });
+        }
+
+        function syncWorkerScamLocationFromLive() {
+            resolveCurrentLocation().then((coords) => {
+                if (!coords) return;
+                workerScamSetReportLocation({ lat: coords.lat, lng: coords.lng }, 'live');
+            });
+        }
+
+        resolveCurrentLocation().then((coords) => {
+            const params = new URLSearchParams();
+            if (coords) {
+                params.set('lat', coords.lat);
+                params.set('lng', coords.lng);
+            }
+            if (coords) syncWorkerScamLocationFromLive();
+            const endpoint = params.toString() ? `/api/worker/alerts/?${params.toString()}` : '/api/worker/alerts/';
+            fetch(endpoint)
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`Worker alerts request failed: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then((payload) => {
+                    const container = document.getElementById('workerAlertsList');
+                    const locationMeta = document.getElementById('workerAlertsLocationMeta');
+                    const alerts = payload.alerts || [];
+                    if (locationMeta) {
+                        locationMeta.textContent = payload.location
+                            ? `Current live area: ${payload.location}`
+                            : 'Current live area unavailable.';
+                    }
+                    container.innerHTML = alerts.length
+                        ? alerts.map((item) => `
+                            <article class="alert-item">
+                                <strong>${item.title || 'Worker alert'}</strong>
+                                <div>${item.description || 'No description available.'}</div>
+                                <div class="meta-row">
+                                    <span>${item.severity || 'UNAVAILABLE'}</span>
+                                    <span>${item.source || 'signal'}</span>
+                                </div>
+                            </article>
+                        `).join('')
+                        : '<div class="empty-state">No live worker alerts are stored for this location right now.</div>';
+                })
+                .catch(() => {
+                    document.getElementById('workerAlertsLocationMeta').textContent = 'No live or saved worker location is available.';
+                    document.getElementById('workerAlertsList').innerHTML = '<div class="empty-state">No worker alerts could be loaded for this account.</div>';
+                });
+        });
+
+        const scamForm = document.getElementById('scamReportForm');
+        const scamLocationSource = document.getElementById('workerScamLocationSource');
+        const scamSearchWrap = document.getElementById('workerScamSearchWrap');
+        const scamSearchInput = document.getElementById('workerScamPlaceInput');
+        const scamSearchButton = document.getElementById('workerScamPlaceSearchBtn');
+        const scamUseLiveButton = document.getElementById('workerScamUseLiveBtn');
+        const scamSearchResults = document.getElementById('workerScamPlaceResults');
+
+        if (scamLocationSource) {
+            scamLocationSource.addEventListener('change', () => {
+                const isSearchMode = scamLocationSource.value === 'search';
+                if (scamSearchWrap) scamSearchWrap.style.display = isSearchMode ? 'block' : 'none';
+                if (!isSearchMode) syncWorkerScamLocationFromLive();
+                if (isSearchMode) workerScamSetReportLocation(null);
+            });
+        }
+        if (scamSearchInput) {
+            scamSearchInput.addEventListener('input', () => {
+                clearTimeout(workerScamState.searchTimer);
+                if (workerScamNormalizeQuery(scamSearchInput.value).length < 2) {
+                    workerScamRenderSearchResults([], 'Search for the place where the scam happened, or use live location.');
+                    return;
+                }
+                workerScamState.searchTimer = setTimeout(() => workerScamRunPlaceSearch(false), 250);
+            });
+        }
+        if (scamSearchButton) scamSearchButton.addEventListener('click', () => workerScamRunPlaceSearch(true));
+        if (scamUseLiveButton) {
+            scamUseLiveButton.addEventListener('click', () => {
+                if (scamLocationSource) scamLocationSource.value = 'active';
+                if (scamSearchWrap) scamSearchWrap.style.display = 'none';
+                syncWorkerScamLocationFromLive();
+            });
+        }
+        if (scamSearchResults) {
+            scamSearchResults.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-worker-place-index]');
+                if (!button) return;
+                const place = workerScamState.searchResults[Number(button.getAttribute('data-worker-place-index'))];
+                if (place) workerScamSelectPlace(place);
+            });
+        }
+        if (scamForm) {
+            scamForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const description = document.getElementById('scamDescription').value;
+                const locationLabel = document.getElementById('workerScamLocationLabel').value.trim();
+                const statusNode = document.getElementById('scamReportStatus');
+                const btn = e.target.querySelector('button[type="submit"]');
+
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+
+                try {
+                    let coords = workerScamState.reportLocation;
+                    if (!coords && (!scamLocationSource || scamLocationSource.value === 'active')) {
+                        const liveCoords = await resolveCurrentLocation();
+                        coords = liveCoords ? { lat: liveCoords.lat, lng: liveCoords.lng } : null;
+                    }
+                    if (!coords) {
+                        throw new Error('Choose a live or searched location for the scam report.');
+                    }
+                    const payload = {
+                        incident_type: 'scam',
+                        description: description,
+                        latitude: coords.lat,
+                        longitude: coords.lng,
+                        location_label: locationLabel || coords.label || '',
+                    };
+
+                    const response = await fetch('/api/report-incident/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        statusNode.className = 'small mb-2 text-success fw-bold';
+                        statusNode.textContent = '✅ Scam alert reported successfully!';
+                        setTimeout(() => {
+                            const modalEl = document.getElementById('reportScamModal');
+                            const modal = bootstrap.Modal.getInstance(modalEl);
+                            if (modal) modal.hide();
+                            scamForm.reset();
+                            workerScamSetReportLocation(null);
+                            if (scamLocationSource) scamLocationSource.value = 'active';
+                            if (scamSearchWrap) scamSearchWrap.style.display = 'none';
+                            syncWorkerScamLocationFromLive();
+                            statusNode.textContent = '';
+                            btn.disabled = false;
+                            btn.textContent = 'Submit Live Alert';
+                        }, 2000);
+                    } else {
+                        throw new Error(data.message || 'Submission failed');
+                    }
+                } catch (err) {
+                    statusNode.className = 'small mb-2 text-danger fw-bold';
+                    statusNode.textContent = '❌ ' + err.message;
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Live Alert';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

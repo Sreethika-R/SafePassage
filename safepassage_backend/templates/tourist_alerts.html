@@ -1,0 +1,359 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Tourist Alerts - SafePassage India{% endblock %}
+
+{% block dashboard_css %}
+<style>
+    .alert-shell {
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        border-radius: 24px;
+        box-shadow: 0 10px 34px rgba(15, 23, 42, 0.08);
+        padding: 24px;
+    }
+    .alert-stack { display: flex; flex-direction: column; gap: 14px; }
+    .alert-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .alert-card {
+        background: rgba(248, 250, 252, 0.94);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        padding: 16px;
+    }
+    .alert-card h6 { margin-bottom: 6px; }
+    .severity-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+    .risk-low { background: rgba(16, 185, 129, 0.12); color: #047857; }
+    .risk-medium { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+    .risk-high { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+    .risk-unavailable { background: rgba(100, 116, 139, 0.14); color: #475569; }
+    .report-form {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+    }
+    .report-form .form-control,
+    .report-form textarea {
+        border-radius: 16px;
+        min-height: 46px;
+    }
+    .report-status {
+        color: #64748b;
+        font-size: 0.84rem;
+        min-height: 22px;
+    }
+    @media (max-width: 767.98px) { .alert-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h2 class="fw-bold mb-1">Notifications and Alerts</h2>
+            <p class="text-muted mb-0">Live safety warnings based on your current position, nearby incidents, and active risk zones.</p>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-xl-4">
+            <div class="alert-stack">
+                <div class="alert-shell">
+                    <div class="small text-muted">Current live zone</div>
+                    <h4 class="fw-bold mb-2" id="alertZoneLabel">Waiting for GPS lock...</h4>
+                    <div class="severity-pill risk-unavailable mb-3" id="alertRiskBadge">LOCATING</div>
+                    <p class="small text-muted mb-2" id="alertRiskAdvice">Alerts will populate after your current location is synced.</p>
+                    <div class="small text-muted" id="alertCoordinates">Coordinates pending</div>
+                </div>
+                <div class="alert-shell">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <div>
+                            <h5 class="fw-bold mb-1">Add Scam Data</h5>
+                            <p class="small text-muted mb-0">Report a scam or suspicious fraud pattern for your current place so it appears in the live alert system.</p>
+                        </div>
+                    </div>
+                    <form class="report-form" id="scamAlertForm">
+                        <input type="text" class="form-control" id="scamLocationLabel" name="location_label" placeholder="Location label, e.g. Bus stand or ferry point">
+                        <textarea class="form-control" id="scamDescription" name="description" rows="4" placeholder="Describe the scam, overcharge, fake guide, theft setup, or suspicious behavior..." required></textarea>
+                        <button class="btn btn-danger rounded-pill fw-bold" type="submit" id="scamSubmitButton">Submit Scam Alert</button>
+                    </form>
+                    <div class="report-status mt-2" id="scamReportStatus">Scam reports use your live or last saved location.</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-8">
+            <div class="alert-shell">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Live alert feed</h5>
+                    <button class="btn btn-outline-primary rounded-pill px-4" type="button" id="alertRefreshButton">Refresh</button>
+                </div>
+                <div class="alert-grid mb-4" id="alertCategoryGrid">
+                    <div class="alert-card text-muted small">Notification categories will load after live or saved location sync.</div>
+                </div>
+                <div class="alert-stack" id="alertFeed">
+                    <div class="alert-card text-muted small">No live alerts yet. GPS sync will start this feed automatically.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const alertsState = { lat: null, lng: null, source: null };
+
+    function alertsRiskClass(label) {
+        if (label === 'HIGH') return 'risk-high';
+        if (label === 'MEDIUM') return 'risk-medium';
+        if (label === 'UNAVAILABLE' || label === 'LIVE') return 'risk-unavailable';
+        return 'risk-low';
+    }
+
+    function setText(id, value) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value;
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let index = 0; index < cookies.length; index += 1) {
+                const cookie = cookies[index].trim();
+                if (cookie.substring(0, name.length + 1) === `${name}=`) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then((response) => {
+            if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+            return response.json();
+        });
+    }
+
+    function formatCoordinateLabel(lat, lng) {
+        return `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`;
+    }
+
+    function formatLocationLabel(label, lat, lng, fallback) {
+        if (label) return label;
+        if (lat != null && lng != null) return formatCoordinateLabel(lat, lng);
+        return fallback || 'Live location unavailable';
+    }
+
+    function formatRiskLabel(label) {
+        return label || 'UNAVAILABLE';
+    }
+
+    function renderNotificationCategories(risk, alerts, weather, culture) {
+        const alertList = alerts && Array.isArray(alerts.alerts) ? alerts.alerts : [];
+        const culturalWarnings = culture && Array.isArray(culture.scam_alerts) ? culture.scam_alerts.length : 0;
+        const restrictedZones = culture && Array.isArray(culture.restricted_zones) ? culture.restricted_zones.length : 0;
+        const hasNearestFallback = alertList.some((item) => item.scope === 'nearest-available');
+        const categories = [
+            {
+                title: 'Route Risk Alerts',
+                level: formatRiskLabel(risk.risk_label),
+                detail: risk && risk.advice ? risk.advice : 'Live route-risk guidance unavailable.',
+            },
+            {
+                title: 'Unsafe Zone Entry',
+                level: alertList.length ? formatRiskLabel(alertList[0].severity) : formatRiskLabel(risk.risk_label),
+                detail: alertList.length
+                    ? `${alertList.length} alert signals are active for this place${hasNearestFallback ? ', including the nearest available warnings beyond the immediate radius' : ''}.`
+                    : 'No unsafe-zone alerts are stored near this location right now.',
+            },
+            {
+                title: 'Emergency Alerts',
+                level: 'LOW',
+                detail: 'SOS dispatches your live or last saved location to the configured emergency channels and admin monitors.',
+            },
+            {
+                title: 'Travel Updates',
+                level: weather && weather.risk_label ? formatRiskLabel(weather.risk_label) : 'UNAVAILABLE',
+                detail: weather && weather.advice ? weather.advice : 'No live travel or weather update is available right now.',
+            },
+            {
+                title: 'Cultural Warnings',
+                level: culturalWarnings || restrictedZones ? 'MEDIUM' : 'LOW',
+                detail: culturalWarnings || restrictedZones
+                    ? `${culturalWarnings} scam warnings and ${restrictedZones} sensitive-zone warnings are active for this area.`
+                    : 'No cultural or scam warnings are active for this area right now.',
+            },
+        ];
+
+        document.getElementById('alertCategoryGrid').innerHTML = categories.map((item) => `
+            <div class="alert-card">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <h6 class="fw-bold mb-0">${escapeHtml(item.title)}</h6>
+                    <span class="severity-pill ${alertsRiskClass(item.level)}">${escapeHtml(item.level)}</span>
+                </div>
+                <div class="small text-muted">${escapeHtml(item.detail)}</div>
+            </div>
+        `).join('');
+    }
+
+    function refreshAlerts() {
+        if (alertsState.lat == null || alertsState.lng == null) {
+            setText('alertRiskAdvice', 'Location is still loading, so live alert refresh is paused.');
+            return;
+        }
+
+        const params = new URLSearchParams({
+            lat: alertsState.lat.toFixed(6),
+            lng: alertsState.lng.toFixed(6),
+        });
+
+        Promise.all([
+            fetchJson(`/api/alerts/?${params.toString()}`),
+            fetchJson(`/api/predict-risk/?${params.toString()}`),
+            fetchJson(`/api/weather-risk/?${params.toString()}`),
+            fetchJson(`/cultural-data/?${params.toString()}`),
+        ]).then(([alerts, risk, weather, culture]) => {
+            setText('alertZoneLabel', formatLocationLabel(risk.location, alertsState.lat, alertsState.lng, 'Live location unavailable'));
+            const badge = document.getElementById('alertRiskBadge');
+            const riskLabel = formatRiskLabel(risk.risk_label);
+            badge.textContent = riskLabel;
+            badge.className = `severity-pill ${alertsRiskClass(riskLabel)} mb-3`;
+            setText('alertRiskAdvice', risk.advice || 'No risk advice available.');
+            setText('alertCoordinates', `${formatCoordinateLabel(alertsState.lat, alertsState.lng)}${alertsState.source === 'saved' ? ' | Using last saved location' : ''}`);
+            renderNotificationCategories(risk, alerts, weather, culture);
+
+            const container = document.getElementById('alertFeed');
+            if (!alerts.alerts || !alerts.alerts.length) {
+                container.innerHTML = '<div class="alert-card text-muted small">No live incidents or warning zones are currently stored for this location.</div>';
+                return;
+            }
+
+            container.innerHTML = alerts.alerts.map((alert) => `
+                <div class="alert-card">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <div class="fw-bold">${escapeHtml(alert.title || 'Nearby alert')}</div>
+                        <span class="severity-pill ${alertsRiskClass(formatRiskLabel(alert.severity))}">${escapeHtml(formatRiskLabel(alert.severity))}</span>
+                    </div>
+                    <div class="small text-muted mb-1">${escapeHtml(alert.description || '')}</div>
+                    <div class="small text-muted">
+                        ${alert.distance_km != null ? `${alert.distance_km} km away` : 'Distance unavailable'}
+                        ${alert.scope === 'nearest-available' ? ' | Showing nearest available alert' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }).catch(() => {
+            setText('alertRiskAdvice', "Live alerts failed to refresh. We'll retry on the next location update.");
+        });
+    }
+
+    function applyLocation(lat, lng, source) {
+        alertsState.lat = lat;
+        alertsState.lng = lng;
+        alertsState.source = source;
+        refreshAlerts();
+    }
+
+    function submitScamAlert(event) {
+        event.preventDefault();
+        if (alertsState.lat == null || alertsState.lng == null) {
+            setText('scamReportStatus', 'Location is still unavailable. Allow GPS or use your saved location first.');
+            return;
+        }
+
+        const description = document.getElementById('scamDescription').value.trim();
+        const locationLabel = document.getElementById('scamLocationLabel').value.trim();
+        if (!description) {
+            setText('scamReportStatus', 'Please describe the scam before submitting.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('lat', alertsState.lat.toFixed(6));
+        formData.append('lng', alertsState.lng.toFixed(6));
+        formData.append('incident_type', 'scam');
+        formData.append('description', description);
+        if (locationLabel) formData.append('location_label', locationLabel);
+
+        const submitButton = document.getElementById('scamSubmitButton');
+        submitButton.disabled = true;
+        setText('scamReportStatus', 'Submitting scam alert...');
+
+        fetch('/api/report-incident/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+        }).then((response) => response.json())
+        .then((payload) => {
+            if (payload.status !== 'success') {
+                setText('scamReportStatus', payload.message || 'Unable to submit the scam alert right now.');
+                return;
+            }
+            document.getElementById('scamAlertForm').reset();
+            setText('scamReportStatus', 'Scam alert submitted. The live feed is refreshing now.');
+            refreshAlerts();
+        }).catch(() => {
+            setText('scamReportStatus', 'Unable to submit the scam alert right now.');
+        }).finally(() => {
+            submitButton.disabled = false;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedLat = {% if saved_location %}{{ saved_location.latitude|floatformat:6 }}{% else %}null{% endif %};
+        const savedLng = {% if saved_location %}{{ saved_location.longitude|floatformat:6 }}{% else %}null{% endif %};
+        let hasLiveRefresh = false;
+        let usedSavedFallback = false;
+
+        const useSavedLocation = () => {
+            if (usedSavedFallback || savedLat === null || savedLng === null) return;
+            usedSavedFallback = true;
+            applyLocation(Number(savedLat), Number(savedLng), 'saved');
+            setText('scamReportStatus', 'Using your last saved location for scam reporting and alerts.');
+        };
+
+        document.getElementById('alertRefreshButton').addEventListener('click', refreshAlerts);
+        document.getElementById('scamAlertForm').addEventListener('submit', submitScamAlert);
+
+        if (!navigator.geolocation) {
+            setText('alertZoneLabel', 'Browser geolocation is unavailable.');
+            useSavedLocation();
+            return;
+        }
+
+        window.setTimeout(() => {
+            if (!hasLiveRefresh) useSavedLocation();
+        }, 2500);
+
+        navigator.geolocation.getCurrentPosition((position) => {
+            hasLiveRefresh = true;
+            applyLocation(position.coords.latitude, position.coords.longitude, 'live');
+        }, () => {
+            setText('alertZoneLabel', 'Location permission required for live alerts.');
+            useSavedLocation();
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
+
+        navigator.geolocation.watchPosition((position) => {
+            hasLiveRefresh = true;
+            applyLocation(position.coords.latitude, position.coords.longitude, 'live');
+        }, () => {
+            useSavedLocation();
+        }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
+    });
+</script>
+{% endblock %}

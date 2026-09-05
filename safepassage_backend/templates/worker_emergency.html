@@ -1,0 +1,636 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Rescue Alarm SOS | SafePassage India{% endblock %}
+
+{% block dashboard_css %}
+<style>
+    .worker-sos-shell {
+        background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+        border: 1px solid rgba(248, 113, 113, 0.18);
+        border-radius: 32px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        padding: 32px;
+        text-align: center;
+    }
+    .worker-sos-button {
+        align-items: center;
+        background: #ef4444;
+        border: 12px solid rgba(254, 202, 202, 0.75);
+        border-radius: 50%;
+        color: #ffffff;
+        display: inline-flex;
+        flex-direction: column;
+        font-size: 1.2rem;
+        font-weight: 800;
+        height: 240px;
+        justify-content: center;
+        margin: 24px 0;
+        text-transform: uppercase;
+        width: 240px;
+    }
+    .worker-sos-grid {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 24px;
+    }
+    .info-card {
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 24px;
+        padding: 22px;
+        text-align: left;
+    }
+    .sos-target-form {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 16px;
+    }
+    .sos-target-field label {
+        color: #64748b;
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+    .sos-target-field input {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 14px;
+        padding: 12px 14px;
+        width: 100%;
+    }
+    .sos-target-meta {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .sos-target-chip {
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        border-radius: 999px;
+        color: #1d4ed8;
+        display: inline-flex;
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 4px 10px;
+    }
+    .sos-target-status {
+        color: #64748b;
+        font-size: 0.86rem;
+        margin-top: 12px;
+    }
+    .ack-banner {
+        display: none;
+        margin-bottom: 18px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid rgba(16, 185, 129, 0.22);
+        background: linear-gradient(135deg, rgba(236, 253, 245, 0.96), rgba(255, 255, 255, 0.96));
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+        text-align: left;
+    }
+    .ack-banner.active {
+        display: block;
+    }
+    .setup-checklist {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .setup-item {
+        align-items: flex-start;
+        background: rgba(248, 250, 252, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 16px;
+        display: flex;
+        gap: 10px;
+        padding: 12px 14px;
+    }
+    .setup-item strong {
+        display: block;
+    }
+    .setup-item.ready {
+        border-color: rgba(16, 185, 129, 0.22);
+        background: rgba(236, 253, 245, 0.92);
+    }
+    .worker-contact-form {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+    }
+    .worker-contact-form select,
+    .worker-contact-form input {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 14px;
+        padding: 12px 14px;
+        width: 100%;
+    }
+    .worker-contact-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+    }
+    .contact-card-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    @media (max-width: 991.98px) {
+        .worker-sos-grid {
+            grid-template-columns: 1fr;
+        }
+        .sos-target-form {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+    <div class="ack-banner {% if latest_alert and latest_alert.acknowledged_at %}active{% endif %}" id="workerAckBanner">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="small text-uppercase fw-bold" style="color:#059669;">Confirmation Received</div>
+                <div class="fw-bold mt-1" id="workerAckHeadline">
+                    {% if latest_alert and latest_alert.acknowledged_at %}
+                    {{ latest_alert.acknowledged_by|default:"Emergency contact" }} acknowledged your SOS alert.
+                    {% else %}
+                    An emergency contact acknowledgement will appear here.
+                    {% endif %}
+                </div>
+                <div class="small text-muted mt-1" id="workerAckDetail">
+                    {% if latest_alert and latest_alert.acknowledged_at %}
+                    Confirmation recorded for your latest worker SOS at {{ latest_alert.acknowledged_at|date:"d M Y, H:i:s" }}.
+                    {% else %}
+                    The latest acknowledgement will appear here as soon as it is recorded.
+                    {% endif %}
+                </div>
+            </div>
+            <span class="badge rounded-pill text-bg-success px-3 py-2">RECEIVED</span>
+        </div>
+    </div>
+
+    <section class="worker-sos-shell">
+        <div class="small text-uppercase text-danger fw-bold">Night Worker Emergency Center</div>
+        <h1 class="fw-bold mt-2">Sound to Call for Rescue | Emergency alarm SOS</h1>
+        <div class="d-flex flex-column align-items-center gap-3 my-4">
+            <div class="d-grid gap-3 w-100" style="max-width: 400px;">
+                <button class="btn btn-danger rounded-pill py-3 fw-bold fs-5 shadow-sm" type="button" id="silentSosButton">
+                    <i class="bi bi-shield-fill-exclamation me-2"></i>SILENT ALERT
+                </button>
+                <button class="btn btn-dark rounded-pill py-3 fw-bold fs-5 shadow-sm" type="button" id="loudSosButton">
+                    <i class="bi bi-megaphone-fill me-2"></i>LOUD ALARM
+                </button>
+                <button class="btn btn-outline-secondary rounded-pill py-2 fw-bold" type="button" id="stopAlarmButton" style="display:none;">
+                    <i class="bi bi-slash-circle me-1"></i>Stop Alarm
+                </button>
+            </div>
+        </div>
+        <div class="small text-muted" id="workerSosStatus">System armed. Click a button above to trigger dispatch.</div>
+        <div class="worker-sos-grid">
+            <div class="info-card">
+                <h5 class="fw-bold mb-2">Required SOS Setup</h5>
+                <p class="text-muted mb-0">Workers must save employer details here and keep exactly 2 personal emergency contacts ready before SOS can be sent.</p>
+                <div class="setup-checklist">
+                    <div class="setup-item {% if worker_sos_setup.employer_contact_complete %}ready{% endif %}">
+                        <i class="bi {% if worker_sos_setup.employer_contact_complete %}bi-check-circle-fill text-success{% else %}bi-exclamation-circle-fill text-danger{% endif %}"></i>
+                        <div>
+                            <strong>Employer details</strong>
+                            <span class="small text-muted">
+                                {% if worker_sos_setup.employer_contact_complete %}
+                                {{ worker_sos_setup.employer_contact.name }} | {{ worker_sos_setup.employer_contact.phone }} | {{ worker_sos_setup.employer_contact.email }}
+                                {% else %}
+                                Add employer name, phone, and email below.
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="setup-item {% if emergency_contacts_count >= 2 %}ready{% endif %}">
+                        <i class="bi {% if emergency_contacts_count >= 2 %}bi-check-circle-fill text-success{% else %}bi-exclamation-circle-fill text-danger{% endif %}"></i>
+                        <div>
+                            <strong>Emergency contacts</strong>
+                            <span class="small text-muted">{{ emergency_contacts_count|default:0 }}/2 contacts saved on this page.</span>
+                        </div>
+                    </div>
+                </div>
+                {% if worker_sos_setup.missing_requirements %}
+                <div class="sos-target-status text-danger fw-semibold" id="workerSetupStatus">
+                    Finish this setup before triggering SOS: {{ worker_sos_setup.missing_requirements|join:" " }}
+                </div>
+                {% else %}
+                <div class="sos-target-status text-success fw-semibold" id="workerSetupStatus">
+                    SOS setup complete. Employer and 2 emergency contacts are ready for dispatch.
+                </div>
+                {% endif %}
+            </div>
+            <div class="info-card">
+                <h5 class="fw-bold mb-2">Employer Details</h5>
+                <p class="text-muted mb-0">This employer contact is mandatory and will always be included in worker SOS email dispatch.</p>
+                <form id="workerSosTargetForm" class="sos-target-form">
+                    <div class="sos-target-field">
+                        <label for="workerSosTargetName">Employer name</label>
+                        <input type="text" id="workerSosTargetName" value="{{ worker.emergency_contact_name|default:'' }}" placeholder="Supervisor or employer name" autocomplete="name">
+                    </div>
+                    <div class="sos-target-field">
+                        <label for="workerSosTargetPhone">Employer phone</label>
+                        <input type="text" id="workerSosTargetPhone" value="{{ worker.emergency_contact_phone|default:'' }}" placeholder="9876543210" autocomplete="tel" maxlength="10">
+                    </div>
+                    <div class="sos-target-field" style="grid-column: span 2;">
+                        <label for="workerSosTargetEmail">Employer email</label>
+                        <input type="email" id="workerSosTargetEmail" value="{{ worker.emergency_contact_email|default:'' }}" placeholder="supervisor@company.com" autocomplete="email">
+                    </div>
+                </form>
+                <div class="sos-target-meta">
+                    <span class="sos-target-chip">Mandatory Employer Contact</span>
+                    <button class="btn btn-danger rounded-pill px-4 py-2 fw-bold ms-auto" type="button" id="workerSaveSosTargetButton">Save Employer Details</button>
+                </div>
+                <div class="sos-target-status" id="workerSosTargetStatus">
+                    {% if worker.emergency_contact_name and worker.emergency_contact_phone and worker.emergency_contact_email %}
+                    Current employer contact: {{ worker.emergency_contact_name }} | {{ worker.emergency_contact_phone }} | {{ worker.emergency_contact_email }}.
+                    {% else %}
+                    No employer details have been saved yet.
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-card">
+                <h5 class="fw-bold mb-3">Dispatch Status</h5>
+                <div class="text-muted" id="workerDispatchMeta">{% if current_worker_location %}Current live area: {{ current_worker_location }}. The system will send the alert through the real emergency endpoint.{% else %}Live location is required before dispatch. The system will send the alert through the real emergency endpoint.{% endif %}</div>
+            </div>
+            <div class="info-card">
+                <h5 class="fw-bold mb-3">Last Alert</h5>
+                <div class="text-muted">
+                    {% if latest_alert %}
+                        <div class="mb-1 fw-bold text-dark">{{ latest_alert.timestamp }} | {{ latest_alert.mode|upper }}</div>
+                        <div class="small">
+                            <i class="bi bi-geo-alt me-1"></i>{% if latest_alert_location %}{{ latest_alert_location }}{% else %}{{ latest_alert.latitude }}, {{ latest_alert.longitude }}{% endif %}
+                        </div>
+                        {% if latest_alert.acknowledged_at %}
+                        <div class="mt-1 text-success fw-bold small">
+                            <i class="bi bi-check-all me-1"></i>Received{% if latest_alert.acknowledged_by %} by {{ latest_alert.acknowledged_by }}{% endif %} ({{ latest_alert.acknowledged_at|date:"H:i:s" }})
+                        </div>
+                        {% else %}
+                        <div class="mt-1 text-muted small fst-italic">Waiting for contact confirmation...</div>
+                        {% endif %}
+                    {% else %}
+                        No worker SOS recorded yet.
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-card" style="grid-column: span 2;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0">Personal Emergency Contacts</h5>
+                        <div class="small text-muted mt-1">Add up to 2 contacts here without leaving this page.</div>
+                    </div>
+                    <span class="badge bg-dark rounded-pill" id="workerEmergencyContactCount">{{ emergency_contacts_count|default:0 }}/2</span>
+                </div>
+                <div class="row g-3">
+                    {% for contact in emergency_contacts %}
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3" style="background: rgba(148, 163, 184, 0.05); border-color: rgba(148, 163, 184, 0.18) !important;">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <span class="fw-bold text-truncate" style="max-width: 140px;">{{ contact.name }}</span>
+                                {% if contact.is_primary %}<span class="badge bg-danger ms-2" style="font-size: 0.6rem; vertical-align: middle;">PRIMARY</span>{% endif %}
+                            </div>
+                            <div class="small text-muted mb-2 text-truncate">{{ contact.get_relationship_display }} | <a href="tel:{{ contact.phone }}" class="text-decoration-none text-muted">{{ contact.phone }}</a></div>
+                            <div class="d-flex gap-1 flex-wrap">
+                                {% if contact.sms_enabled %}<span class="badge bg-info text-dark" style="font-size: 0.6rem; padding: 2px 6px;">SMS</span>{% endif %}
+                                {% if contact.whatsapp_enabled %}<span class="badge bg-success" style="font-size: 0.6rem; padding: 2px 6px;">WHATSAPP</span>{% endif %}
+                                {% if contact.email %}<span class="badge bg-warning text-dark" style="font-size: 0.6rem; padding: 2px 6px;">EMAIL</span>{% endif %}
+                            </div>
+                            <div class="contact-card-actions">
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill workerDeleteContactButton" data-contact-id="{{ contact.id }}">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-3">
+                        <p class="text-muted small mb-1">No personal emergency contacts have been saved yet. Add both contacts below.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <hr class="my-4">
+                <form id="workerEmergencyContactForm" class="worker-contact-form">
+                    <div class="sos-target-form">
+                        <div class="sos-target-field">
+                            <label for="workerEmergencyContactName">Contact name</label>
+                            <input type="text" id="workerEmergencyContactName" placeholder="Family or trusted friend" autocomplete="name" {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                        </div>
+                        <div class="sos-target-field">
+                            <label for="workerEmergencyContactPhone">Phone</label>
+                            <input type="text" id="workerEmergencyContactPhone" placeholder="9876543210" autocomplete="tel" maxlength="10" {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                        </div>
+                        <div class="sos-target-field">
+                            <label for="workerEmergencyRelationship">Relationship</label>
+                            <select id="workerEmergencyRelationship" {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                                <option value="parent">Parent</option>
+                                <option value="spouse">Spouse</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="friend">Friend</option>
+                                <option value="relative">Relative</option>
+                                <option value="colleague">Colleague</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="sos-target-field">
+                            <label for="workerEmergencyContactEmail">Email</label>
+                            <input type="email" id="workerEmergencyContactEmail" placeholder="contact@example.com" autocomplete="email" {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                        </div>
+                    </div>
+                    <div class="worker-contact-actions">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="workerEmergencyPrimary" {% if not emergency_contacts_count %}checked{% endif %} {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                            <label class="form-check-label small" for="workerEmergencyPrimary">Make primary contact</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="workerEmergencySms" checked {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                            <label class="form-check-label small" for="workerEmergencySms">SMS</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="workerEmergencyWhatsapp" checked {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>
+                            <label class="form-check-label small" for="workerEmergencyWhatsapp">WhatsApp</label>
+                        </div>
+                        <button class="btn btn-dark rounded-pill px-4 py-2 fw-bold ms-auto" type="submit" id="workerAddEmergencyContactButton" {% if not worker_sos_setup.can_add_emergency_contacts %}disabled{% endif %}>Add Contact</button>
+                    </div>
+                    <div class="sos-target-status" id="workerEmergencyContactStatus">
+                        {% if worker_sos_setup.can_add_emergency_contacts %}
+                        Add {{ worker_sos_setup.emergency_contacts_remaining }} more contact{{ worker_sos_setup.emergency_contacts_remaining|pluralize }} to complete worker SOS setup.
+                        {% else %}
+                        You already have the 2 contacts required for worker SOS.
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let workerAlarmState = null;
+    let workerAlarmTimer = null;
+
+    function updateWorkerAckBanner(alert) {
+        const banner = document.getElementById('workerAckBanner');
+        const headline = document.getElementById('workerAckHeadline');
+        const detail = document.getElementById('workerAckDetail');
+        if (!banner || !headline || !detail) return;
+
+        if (!alert || !alert.acknowledged_at) {
+            banner.classList.remove('active');
+            return;
+        }
+
+        const acknowledgedBy = alert.acknowledged_by || 'Emergency contact';
+        const timestamp = new Date(alert.acknowledged_at).toLocaleString();
+        const locationLabel = alert.location_label || 'your latest worker SOS alert';
+        headline.textContent = `${acknowledgedBy} acknowledged your SOS alert.`;
+        detail.textContent = `Confirmation recorded for ${locationLabel} on ${timestamp}.`;
+        banner.classList.add('active');
+    }
+
+    function refreshWorkerAckBanner() {
+        fetch('/api/sos-history/')
+            .then((response) => response.json())
+            .then((payload) => {
+                const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+                const latestAcknowledged = alerts.find((item) => item && item.acknowledged_at);
+                updateWorkerAckBanner(latestAcknowledged);
+            })
+            .catch(() => {});
+    }
+
+    function workerReloadPageSoon(delay = 900) {
+        window.setTimeout(() => window.location.reload(), delay);
+    }
+
+    function setWorkerStatus(node, message, tone = 'muted') {
+        if (!node) return;
+        node.className = `sos-target-status text-${tone}${tone === 'success' || tone === 'danger' ? ' fw-bold' : ''}`;
+        node.textContent = message;
+    }
+
+    function stopWorkerAlarm() {
+        if (workerAlarmTimer) { clearTimeout(workerAlarmTimer); workerAlarmTimer = null; }
+        if (workerAlarmState) {
+            if (workerAlarmState.intervalId) clearInterval(workerAlarmState.intervalId);
+            try { workerAlarmState.oscillators.forEach(o => o.stop()); } catch(e){}
+            try { workerAlarmState.audioContext.close(); } catch(e){}
+            workerAlarmState = null;
+        }
+        document.getElementById('stopAlarmButton').style.display = 'none';
+    }
+
+    async function startWorkerAlarm() {
+        if (workerAlarmState) return true;
+        const AudioContextRef = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextRef) return false;
+        try {
+            const ctx = new AudioContextRef();
+            const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 1800;
+            const masterGain = ctx.createGain(); masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+            masterGain.gain.exponentialRampToValueAtTime(0.45, ctx.currentTime + 0.08);
+            filter.connect(masterGain); masterGain.connect(ctx.destination);
+            
+            const o1 = ctx.createOscillator(); o1.type = 'sawtooth';
+            const o2 = ctx.createOscillator(); o2.type = 'square';
+            [o1, o2].forEach(o => { o.connect(filter); o.start(); });
+
+            const intervalId = setInterval(() => {
+                const now = ctx.currentTime;
+                o1.frequency.linearRampToValueAtTime(880, now + 0.5);
+                o1.frequency.linearRampToValueAtTime(440, now + 1.0);
+            }, 1000);
+
+            workerAlarmState = { audioContext: ctx, oscillators: [o1, o2], intervalId };
+            document.getElementById('stopAlarmButton').style.display = 'inline-block';
+            return true;
+        } catch (e) { return false; }
+    }
+
+    function triggerWorkerSOS(mode) {
+        const statusNode = document.getElementById('workerSosStatus');
+        const siren = (mode === 'loud');
+        
+        statusNode.textContent = '🚨 Locating and sending SOS...';
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    if (siren) await startWorkerAlarm();
+                    sendToServer(lat, lng, mode);
+                },
+                async (error) => {
+                    if (siren) await startWorkerAlarm();
+                    sendToServer(null, null, mode);
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        } else {
+            sendToServer(null, null, mode);
+        }
+
+        function sendToServer(lat, lng, mode) {
+            fetch('/api/emergency/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lng, mode: mode })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const missing = Array.isArray(data.missing_requirements) && data.missing_requirements.length
+                    ? ` ${data.missing_requirements.join(' ')}`
+                    : '';
+                const info = data.status === 'success'
+                    ? `✅ SOS Dispatched to ${data.notified_contacts || 0} contacts successfully.`
+                    : '❌ Error: ' + (data.message || 'Server error') + missing;
+                statusNode.textContent = info;
+            })
+            .catch(err => {
+                statusNode.textContent = '❌ Network Error. Alert failed.';
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('silentSosButton').addEventListener('click', () => triggerWorkerSOS('silent'));
+        document.getElementById('loudSosButton').addEventListener('click', () => triggerWorkerSOS('loud'));
+        document.getElementById('stopAlarmButton').addEventListener('click', stopWorkerAlarm);
+        refreshWorkerAckBanner();
+
+        document.getElementById('workerSaveSosTargetButton').addEventListener('click', function() {
+            const name = document.getElementById('workerSosTargetName').value;
+            const phone = document.getElementById('workerSosTargetPhone').value;
+            const email = document.getElementById('workerSosTargetEmail').value;
+            const statusNode = document.getElementById('workerSosTargetStatus');
+            const btn = this;
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            fetch('/api/worker/sos-target/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ name: name, phone: phone, email: email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    setWorkerStatus(statusNode, `Updated employer contact: ${data.contact.name} | ${data.contact.phone} | ${data.contact.email}`, 'success');
+                    const setupNode = document.getElementById('workerSetupStatus');
+                    if (data.setup && data.setup.is_ready) {
+                        setWorkerStatus(setupNode, 'SOS setup complete. Employer and 2 emergency contacts are ready for dispatch.', 'success');
+                    } else if (data.setup && Array.isArray(data.setup.missing_requirements)) {
+                        setWorkerStatus(setupNode, `Finish this setup before triggering SOS: ${data.setup.missing_requirements.join(' ')}`, 'danger');
+                    }
+                    workerReloadPageSoon();
+                } else {
+                    setWorkerStatus(statusNode, data.message || 'Error updating employer details.', 'danger');
+                    btn.disabled = false;
+                    btn.textContent = 'Save Employer Details';
+                }
+            })
+            .catch(err => {
+                setWorkerStatus(statusNode, 'Network error. Failed to save employer details.', 'danger');
+                btn.disabled = false;
+                btn.textContent = 'Save Employer Details';
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Save Employer Details';
+                }, 2000);
+            });
+        });
+
+        const emergencyForm = document.getElementById('workerEmergencyContactForm');
+        if (emergencyForm) {
+            emergencyForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const statusNode = document.getElementById('workerEmergencyContactStatus');
+                const btn = document.getElementById('workerAddEmergencyContactButton');
+                if (btn && btn.disabled) return;
+
+                const formData = new FormData();
+                formData.append('name', document.getElementById('workerEmergencyContactName').value);
+                formData.append('phone', document.getElementById('workerEmergencyContactPhone').value);
+                formData.append('relationship', document.getElementById('workerEmergencyRelationship').value);
+                formData.append('email', document.getElementById('workerEmergencyContactEmail').value);
+                if (document.getElementById('workerEmergencyPrimary').checked) formData.append('is_primary', 'on');
+                if (document.getElementById('workerEmergencySms').checked) formData.append('sms_enabled', 'on');
+                if (document.getElementById('workerEmergencyWhatsapp').checked) formData.append('whatsapp_enabled', 'on');
+
+                btn.disabled = true;
+                btn.textContent = 'Adding...';
+                fetch('/api/add-contact/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setWorkerStatus(statusNode, 'Emergency contact added. Refreshing setup...', 'success');
+                        workerReloadPageSoon();
+                    } else {
+                        setWorkerStatus(statusNode, data.error || 'Unable to add emergency contact.', 'danger');
+                    }
+                })
+                .catch(() => {
+                    setWorkerStatus(statusNode, 'Network error. Unable to add emergency contact.', 'danger');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Add Contact';
+                });
+            });
+        }
+
+        document.querySelectorAll('.workerDeleteContactButton').forEach((button) => {
+            button.addEventListener('click', function() {
+                const statusNode = document.getElementById('workerEmergencyContactStatus');
+                const contactId = this.dataset.contactId;
+                this.disabled = true;
+                fetch(`/api/delete-contact/${contactId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setWorkerStatus(statusNode, 'Emergency contact removed. Refreshing setup...', 'success');
+                        workerReloadPageSoon();
+                    } else {
+                        setWorkerStatus(statusNode, data.error || 'Unable to remove emergency contact.', 'danger');
+                        this.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    setWorkerStatus(statusNode, 'Network error. Unable to remove emergency contact.', 'danger');
+                    this.disabled = false;
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

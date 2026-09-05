@@ -1,0 +1,285 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Tourist Translate - SafePassage India{% endblock %}
+
+{% block dashboard_css %}
+<style>
+    .translate-shell {
+        background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        border-radius: 28px;
+        box-shadow: 0 16px 44px rgba(15, 23, 42, 0.22);
+        padding: 28px;
+    }
+    .translate-field, .translate-select {
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: rgba(15, 23, 42, 0.36);
+        color: white;
+        font-size: 1rem;
+    }
+    .translate-field::placeholder { color: rgba(255,255,255,0.4); }
+    .translate-output {
+        border-radius: 18px;
+        padding: 18px;
+        min-height: 130px;
+        background: rgba(15, 23, 42, 0.44);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+    .quick-phrase-btn {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #e2e8f0;
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .quick-phrase-btn:hover { background: rgba(255,255,255,0.15); }
+    .tts-lang-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.1);
+        color: #94a3b8;
+        margin-top: 8px;
+    }
+    .auto-speak-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.65);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid py-2">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            <div class="translate-shell">
+                <h2 class="fw-bold mb-1">Language Assistance</h2>
+                <p class="text-light opacity-75 mb-3">Translate any word or phrase instantly - enter a single word for quick results.</p>
+
+                <!-- Quick phrases -->
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <span class="small text-white-50 align-self-center">Quick:</span>
+                    {% for phrase in quick_phrases %}
+                    <button type="button" class="quick-phrase-btn" onclick="quickPhrase('{{ phrase }}')">{{ phrase }}</button>
+                    {% endfor %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-8">
+                        <label for="translatePhrase" class="small text-uppercase opacity-75 mb-2 d-block">Word or phrase (Enter to translate)</label>
+                        <textarea id="translatePhrase" class="translate-field" rows="3" placeholder="Type a single word like 'help' or a full phrase..."></textarea>
+                    </div>
+                    <div class="col-lg-4">
+                        <label for="translateTarget" class="small text-uppercase opacity-75 mb-2 d-block">Target language</label>
+                        <select id="translateTarget" class="translate-select" onchange="onLanguageChange()">
+                            <option value="hi">Hindi</option>
+                            <option value="ml">Malayalam</option>
+                            <option value="ta">Tamil</option>
+                            <option value="te">Telugu</option>
+                            <option value="kn">Kannada</option>
+                        </select>
+                        <div class="tts-lang-badge mt-2" id="ttsLangBadge">
+                            <i class="bi bi-volume-up-fill"></i>
+                            <span>TTS: Hindi</span>
+                        </div>
+                        <label class="auto-speak-toggle mt-3">
+                            <input type="checkbox" id="autoSpeakToggle" checked style="accent-color:#60a5fa;">
+                            Auto-speak after translate
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold" type="button" id="translateNowButton">
+                        <i class="bi bi-translate me-2"></i>Translate
+                    </button>
+                    <button class="btn btn-outline-light rounded-pill px-4 fw-bold" type="button" id="translateSpeakButton">
+                        <i class="bi bi-volume-up-fill me-2"></i>Speak
+                    </button>
+                </div>
+
+                <div class="translate-output">
+                    <div class="small text-uppercase opacity-75 mb-2">Output</div>
+                    <div class="h4 fw-bold text-info mb-2" id="translateOutput">Translator is ready — type a word or phrase above.</div>
+                    <div class="small opacity-75" id="translateOutputNote">Single words and full phrases are both supported. Press Enter or click Translate.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let activeTranslation = '';
+    const langNames = { hi: 'Hindi', ml: 'Malayalam', ta: 'Tamil', te: 'Telugu', kn: 'Kannada' };
+    const langBCP47 = { hi: 'hi-IN', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN' };
+    let cachedSpeechVoices = [];
+    let voicesReadyPromise = null;
+
+    function setText(id, value) { const n = document.getElementById(id); if (n) n.textContent = value; }
+
+    function fetchJson(url, options) {
+        return fetch(url, options).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    }
+
+    function onLanguageChange() {
+        const target = document.getElementById('translateTarget').value;
+        const badge = document.getElementById('ttsLangBadge');
+        badge.querySelector('span').textContent = `TTS: ${langNames[target] || target}`;
+    }
+
+    function quickPhrase(phrase) {
+        document.getElementById('translatePhrase').value = phrase;
+        doTranslation();
+    }
+
+    function loadSpeechVoices() {
+        if (!window.speechSynthesis) return Promise.resolve([]);
+        const existingVoices = window.speechSynthesis.getVoices() || [];
+        if (existingVoices.length) {
+            cachedSpeechVoices = existingVoices;
+            return Promise.resolve(existingVoices);
+        }
+        if (voicesReadyPromise) return voicesReadyPromise;
+        voicesReadyPromise = new Promise((resolve) => {
+            let settled = false;
+            const finalize = () => {
+                if (settled) return;
+                settled = true;
+                const voices = window.speechSynthesis.getVoices() || [];
+                cachedSpeechVoices = voices;
+                resolve(voices);
+            };
+            const timer = window.setTimeout(finalize, 1200);
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.clearTimeout(timer);
+                onLanguageChange();
+                finalize();
+            };
+        });
+        return voicesReadyPromise;
+    }
+
+    function pickSpeechVoice(target) {
+        const voices = cachedSpeechVoices.length
+            ? cachedSpeechVoices
+            : (window.speechSynthesis && window.speechSynthesis.getVoices ? (window.speechSynthesis.getVoices() || []) : []);
+        if (!voices.length) return null;
+        const preferredLang = langBCP47[target] || 'hi-IN';
+        return (
+            voices.find((voice) => voice.lang === preferredLang)
+            || voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith(target.toLowerCase()))
+            || voices.find((voice) => voice.default)
+            || voices[0]
+        );
+    }
+
+    async function speakWithBrowserSpeech(phrase, target) {
+        if (!window.speechSynthesis) {
+            alert('Speech playback is not supported in this browser.');
+            return;
+        }
+        await loadSpeechVoices();
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        const voice = pickSpeechVoice(target);
+        if (voice) {
+            utterance.voice = voice;
+            utterance.lang = voice.lang || (langBCP47[target] || 'hi-IN');
+        } else {
+            utterance.lang = langBCP47[target] || 'hi-IN';
+        }
+        utterance.rate = 0.9;
+        utterance.volume = 1;
+        try {
+            window.speechSynthesis.resume();
+        } catch (error) {
+            // Resume can fail harmlessly on some browsers.
+        }
+        window.setTimeout(() => window.speechSynthesis.speak(utterance), 30);
+    }
+
+    function doTranslation() {
+        const phrase = document.getElementById('translatePhrase').value.trim();
+        const target = document.getElementById('translateTarget').value;
+        if (!phrase) {
+            activeTranslation = '';
+            setText('translateOutput', 'Translator is ready - type a word or phrase above.');
+            setText('translateOutputNote', 'Enter any word (e.g. "help") or a full sentence.');
+            return;
+        }
+        setText('translateOutput', 'Translating...');
+        setText('translateOutputNote', 'Contacting the translation service.');
+
+        fetchJson('/api/translate/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ text: phrase, target_language: target }),
+        }).then(data => {
+            const translated = data.translated_text || (data.translations ? data.translations[target] : '');
+            if (!translated || data.translation_mode === 'unavailable') {
+                activeTranslation = '';
+                setText('translateOutput', 'No translation available for this input right now.');
+                setText('translateOutputNote', data.note || 'Try a different word or supported phrase like: help, police, hospital, ambulance.');
+                return;
+            }
+            activeTranslation = translated;
+            setText('translateOutput', activeTranslation);
+            setText('translateOutputNote',
+                data.translation_mode === 'phrasebook'
+                    ? 'Matched from emergency phrasebook.'
+                    : data.translation_mode === 'intent-match'
+                    ? (data.note || 'Nearest emergency phrase matched.')
+                    : (data.note || 'Translation complete.')
+            );
+            // Auto-speak if enabled
+            if (document.getElementById('autoSpeakToggle').checked) {
+                speakTranslation();
+            }
+        }).catch(() => {
+            activeTranslation = '';
+            setText('translateOutput', 'Translation unavailable.');
+            setText('translateOutputNote', 'Translation service is unreachable right now.');
+        });
+    }
+
+    async function speakTranslation() {
+        const phrase = activeTranslation || document.getElementById('translatePhrase').value.trim();
+        if (!phrase) return;
+        const target = document.getElementById('translateTarget').value;
+        await speakWithBrowserSpeech(phrase, target);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('translateNowButton').addEventListener('click', doTranslation);
+        document.getElementById('translateSpeakButton').addEventListener('click', speakTranslation);
+        loadSpeechVoices().then(onLanguageChange);
+
+        // Enter key support (Shift+Enter for new line, Enter alone to translate)
+        document.getElementById('translatePhrase').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                doTranslation();
+            }
+        });
+
+        // Update TTS language badge on page load
+        onLanguageChange();
+    });
+</script>
+{% endblock %}
