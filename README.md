@@ -56,7 +56,7 @@ I conceived the product, defined the system architecture and AI/ML approach (cri
 
 
 
-safepassage
+safepassage/
 
 ├── ml_pipeline.py # ML training pipeline (risk model)
 
