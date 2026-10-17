@@ -1473,6 +1473,13 @@ class WorkerModuleTests(TestCase):
         self.assertEqual(self.user.worker_profile.employee_id, "NW-1001")
 
     def test_worker_emergency_api_uses_saved_location_when_gps_is_missing(self):
+        profile = self.user.worker_profile
+        profile.emergency_contact_name = "Supervisor"
+        profile.emergency_contact_phone = "9876543211"
+        profile.emergency_contact_email = "supervisor@example.com"
+        profile.save(update_fields=["emergency_contact_name", "emergency_contact_phone", "emergency_contact_email"])
+        EmergencyContact.objects.create(user=self.user, name="Contact One", relationship="other", phone="9876543212")
+        EmergencyContact.objects.create(user=self.user, name="Contact Two", relationship="other", phone="9876543213")
         response = self.client.post(
             reverse("api_emergency"),
             data=json.dumps({"mode": "loud"}),

@@ -2536,7 +2536,11 @@ def _has_primary_local_place_match(local_results, normalized_query):
         normalized_name = (result.get("name") or "").strip().lower()
         if not normalized_name:
             continue
-        if normalized_name == normalized_query or normalized_name.startswith(normalized_query):
+        if (
+            normalized_name == normalized_query
+            or normalized_name.startswith(normalized_query)
+            or normalized_query in normalized_name
+        ):
             return True
     return False
 
