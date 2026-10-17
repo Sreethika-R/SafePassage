@@ -39,12 +39,14 @@ Four roles are defined (Tourist, Worker, Employer, Admin). Login and role checks
 
 ## Run it locally
 
+```
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 cd safepassage_backend
 python manage.py migrate
 python manage.py runserver
+```
 
 Then open http://127.0.0.1:8000/
 
@@ -52,8 +54,10 @@ Email alerts need SMTP settings. Copy `safepassage_backend/.env.example` to `saf
 
 ## Run the tests
 
+```
 cd safepassage_backend
 python manage.py test
+```
 
 Result at the time of writing: 79 tests, all passing.
 
@@ -61,7 +65,9 @@ Result at the time of writing: 79 tests, all passing.
 
 From the repository root:
 
+```
 python ml_pipeline.py
+```
 
 ## Limitations
 
