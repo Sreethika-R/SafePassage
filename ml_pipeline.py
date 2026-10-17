@@ -563,6 +563,10 @@ def save_model_and_artifacts(model, scaler, label_encoder, feature_columns, mode
     
     # Create models directory
     os.makedirs("ml-models", exist_ok=True)
+    best_model_name = max(
+        model_performance,
+        key=lambda m: (model_performance[m]['accuracy'], -model_performance[m]['cv_std'])
+    )
     
     # Save model
     model_path = "ml-models/safepassage_risk_model.pkl"
@@ -595,7 +599,8 @@ def save_model_and_artifacts(model, scaler, label_encoder, feature_columns, mode
         'model_type': 'Risk Classification',
         'risk_categories': label_encoder.classes_.tolist(),
         'feature_columns': feature_columns,
-        'model_accuracy': model_performance['Random Forest']['accuracy'],  # Assuming RF is best
+        'model_name': best_model_name,
+        'model_accuracy': model_performance[best_model_name]['accuracy'],
         'created_date': datetime.now().isoformat(),
         'version': '1.0'
     }
@@ -751,8 +756,12 @@ def main():
         )
         X_test_scaled = scaler.transform(X_test)
         
+        best_model_name = max(
+            model_performance,
+            key=lambda m: (model_performance[m]['accuracy'], -model_performance[m]['cv_std'])
+        )
         accuracy, precision, recall, f1, kappa = detailed_evaluation(
-            best_model, X_test_scaled, y_test, label_encoder, "Random Forest"
+            best_model, X_test_scaled, y_test, label_encoder, best_model_name
         )
         
         # Step 7: Save model and artifacts
